@@ -9,8 +9,8 @@ import collections
 
 
 class LIFO:
-    """simple Last In First Out queue"""
-    
+    """simple Last In First Out queue
+    """
     def __init__(self, max_size: int):
         self.max_size = max_size
         self.queue = []
@@ -18,10 +18,21 @@ class LIFO:
         
     def __len__(self):
         return len(self.queue)
-    
-    
+
+
     def __iter__(self):
+        self.index = len(self.queue) - 1
         return self
+    
+    
+    def __next__(self):
+        if self.index >= 0:
+            result = self.queue[self.index]
+            self.index -= 1
+            return result
+        else:
+            raise StopIteration
+
 
     def add(self, item):
         self.queue.append(item)
