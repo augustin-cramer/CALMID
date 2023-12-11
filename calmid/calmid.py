@@ -45,11 +45,11 @@ class CALMID(WrapperEnsemble, Classifier):
         n_classes: int,
         model: Classifier = HoeffdingTreeClassifier(),
         n_models: int = 10,
-        theta: float = 0.1,
+        theta: float = 0.5,
         step_size: float = 0.1,
         epsilon: float = 0.1,
-        budget: float = 0.5,
-        sizelab: int = 1000,
+        budget: float = 0.2,
+        sizelab: int = 500,
         seed: int | None = None,
     ) -> None:
         """CALMID class constructor"""
