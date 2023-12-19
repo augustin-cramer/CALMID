@@ -1,11 +1,10 @@
-from river import drift
+from river.drift import ADWIN
 from river.tree import HoeffdingTreeClassifier
-from tqdm import tqdm
 from river.base import WrapperEnsemble, Classifier
 from math import ceil, exp, log
 from river import utils
-import random
-import collections
+from random import uniform
+from collections import deque, Counter
 
 
 class CALMID(WrapperEnsemble, Classifier):
@@ -45,16 +44,16 @@ class CALMID(WrapperEnsemble, Classifier):
 
         # attrs built from other attrs
         self.sizesam = ceil(self.sizelab * self.epsilon)
-        self.label_queue = collections.deque(maxlen=self.sizelab)
+        self.label_queue = deque(maxlen=self.sizelab)
         self.learning_queues = []
         # amt = asymetric margin threshold
-        self.amt_matrix = []
-        self._drift_detectors = [drift.ADWIN() for _ in range(self.n_models)]
+        self.amt = []
+        self._drift_detectors = [ADWIN() for _ in range(self.n_models)]
 
     def predict_proba_one(self, x, **kwargs):
         """Averages the predictions of each classifier."""
 
-        y_pred = collections.Counter()
+        y_pred = Counter()
         for model in self:
             y_pred.update(model.predict_proba_one(x, **kwargs))
         total = sum(y_pred.values())
@@ -65,7 +64,7 @@ class CALMID(WrapperEnsemble, Classifier):
     def learn_one(self, x, y):
         self.time_step += 1
         labelling = False
-        zeta = random.uniform(0, 1)
+        zeta = uniform(0, 1)
 
         if self.time_step < self.sizelab or zeta < self.epsilon:
             self.label_queue.append(y)
@@ -84,12 +83,10 @@ class CALMID(WrapperEnsemble, Classifier):
         if labelling:
             if y not in self.label_to_index:
                 self.label_to_index[y] = len(self.label_to_index)
-                self.learning_queues.append(
-                    collections.deque(maxlen=self.sizesam)
-                )
-                for row in self.amt_matrix:
+                self.learning_queues.append(deque(maxlen=self.sizesam))
+                for row in self.amt:
                     row.append(self.theta)
-                self.amt_matrix.append(
+                self.amt.append(
                     [self.theta for _ in range(len(self.label_to_index))]
                 )
 
@@ -122,50 +119,46 @@ class CALMID(WrapperEnsemble, Classifier):
                     key=lambda j: self._drift_detectors[j].estimation,
                 )
                 self.models[max_error_idx] = self.initalize_base_classifiers()
-                self._drift_detectors[max_error_idx] = drift.ADWIN()
+                self._drift_detectors[max_error_idx] = ADWIN()
 
     def uncertainty_selective_strategy(self, x, y) -> bool:
         labelling = False
         margin, yc1, yc2 = self.compute_probability_margin_and_top_classes(x)
         if (
             margin
-            <= self.amt_matrix[self.label_to_index[yc1]][
-                self.label_to_index[yc2]
-            ]
+            <= self.amt[self.label_to_index[yc1]][self.label_to_index[yc2]]
         ):
             labelling = True
             imb_y = self.compute_imbalance(y)
             if y == yc1:
-                self.amt_matrix[self.label_to_index[yc1]][
+                self.amt[self.label_to_index[yc1]][
                     self.label_to_index[yc2]
                 ] *= (1 - self.step_size)
                 if imb_y > 0.5:
-                    self.amt_matrix[self.label_to_index[yc1]][
+                    self.amt[self.label_to_index[yc1]][
                         self.label_to_index[yc2]
                     ] *= (1 - self.step_size)
             elif y == yc2 and imb_y > 0.5:
-                self.amt_matrix[self.label_to_index[yc1]][
+                self.amt[self.label_to_index[yc1]][
                     self.label_to_index[yc2]
                 ] *= (1 - self.step_size)
         else:
             sampbudget = self.budget - self.learning_step / self.time_step
             q = (
                 margin
-                - self.amt_matrix[self.label_to_index[yc1]][
-                    self.label_to_index[yc2]
-                ]
+                - self.amt[self.label_to_index[yc1]][self.label_to_index[yc2]]
             )
             sampbudget = sampbudget / (sampbudget + q)
-            zeta = random.uniform(0, 1)
+            zeta = uniform(0, 1)
             if zeta < sampbudget:
                 labelling = True
             if labelling and y == yc2:
-                self.amt_matrix[self.label_to_index[yc1]][
+                self.amt[self.label_to_index[yc1]][
                     self.label_to_index[yc2]
                 ] = max(
                     [
                         self.theta,
-                        self.amt_matrix[self.label_to_index[yc1]][
+                        self.amt[self.label_to_index[yc1]][
                             self.label_to_index[yc2]
                         ]
                         * (1 + self.step_size),
