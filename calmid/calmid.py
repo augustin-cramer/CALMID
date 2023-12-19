@@ -17,6 +17,11 @@ class CALMID(WrapperEnsemble, Classifier):
         epsilon: float = 0.1,
         budget: float = 0.2,
         sizelab: int = 500,
+        adwin_delta: float = 0.002,
+        adwin_clock: int = 32,
+        adwin_max_buckets: int = 5,
+        adwin_min_window_length: int = 5,
+        adwin_grace_period: int = 10,
         seed: int | None = None,
     ) -> None:
         """CALMID class constructor"""
@@ -34,6 +39,11 @@ class CALMID(WrapperEnsemble, Classifier):
         self.epsilon = epsilon
         self.budget = budget
         self.sizelab = sizelab
+        self.adwin_delta = adwin_delta
+        self.adwin_clock = adwin_clock
+        self.adwin_max_buckets = adwin_max_buckets
+        self.adwin_min_window_length = adwin_min_window_length
+        self.adwin_grace_period = adwin_grace_period
 
         self.time_step = 0
         self.learning_step = 0
@@ -45,7 +55,16 @@ class CALMID(WrapperEnsemble, Classifier):
         self.learning_queues = []
         # amt = asymetric margin threshold
         self.amt = []
-        self._drift_detectors = [ADWIN() for _ in range(self.n_models)]
+        self._drift_detectors = [
+            ADWIN(
+                delta=self.adwin_delta,
+                clock=self.adwin_clock,
+                max_buckets=self.adwin_max_buckets,
+                min_window_length=self.adwin_min_window_length,
+                grace_period=self.adwin_grace_period,
+            )
+            for _ in range(self.n_models)
+        ]
 
     def predict_proba_one(self, x, **kwargs):
         """Averages the predictions of each classifier."""
@@ -114,7 +133,13 @@ class CALMID(WrapperEnsemble, Classifier):
                     key=lambda j: self._drift_detectors[j].estimation,
                 )
                 self.models[max_error_idx] = self.initalize_base_classifiers()
-                self._drift_detectors[max_error_idx] = ADWIN()
+                self._drift_detectors[max_error_idx] = ADWIN(
+                    delta=self.adwin_delta,
+                    clock=self.adwin_clock,
+                    max_buckets=self.adwin_max_buckets,
+                    min_window_length=self.adwin_min_window_length,
+                    grace_period=self.adwin_grace_period,
+                )
 
     def uncertainty_selective_strategy(self, x, y) -> bool:
         labelling = False
