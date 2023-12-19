@@ -7,49 +7,17 @@ from river import utils
 import random
 import collections
 
-
-class LIFO:
-    """simple Last In First Out queue"""
-
-    def __init__(self, max_size: int):
-        self.max_size = max_size
-        self.queue = []
-
-    def __len__(self):
-        return len(self.queue)
-
-    def __iter__(self):
-        self.index = len(self.queue) - 1
-        return self
-
-    def __next__(self):
-        if self.index >= 0:
-            result = self.queue[self.index]
-            self.index -= 1
-            return result
-        else:
-            raise StopIteration
-
-    def add(self, item):
-        self.queue.append(item)
-        if len(self.queue) > self.max_size:
-            self.queue.pop(0)
-
-    def count(self, x):
-        return self.queue.count(x)
-
-
 class CALMID(WrapperEnsemble, Classifier):
     def __init__(
         self,
         n_classes: int,
         model: Classifier = HoeffdingTreeClassifier(),
         n_models: int = 10,
-        theta: float = 0.1,
+        theta: float = 0.5,
         step_size: float = 0.1,
         epsilon: float = 0.1,
-        budget: float = 0.5,
-        sizelab: int = 1000,
+        budget: float = 0.2,
+        sizelab: int = 500,
         seed: int | None = None,
     ) -> None:
         """CALMID class constructor"""
@@ -69,7 +37,7 @@ class CALMID(WrapperEnsemble, Classifier):
         self.budget = budget
         self.sizelab = sizelab
 
-        self.n_classes = n_classes  # can we do better ? can we adapt ? can we add classes along the stream ? --> will have to update amt_matrix. maybe it can be our contribution !!
+        self.n_classes = n_classes  # can we do better ? can we adapt ? can we append classes along the stream ? --> will have to update amt_matrix. maybe it can be our contribution !!
 
         # attrs with default values
         self.time_step = 0
@@ -79,9 +47,9 @@ class CALMID(WrapperEnsemble, Classifier):
 
         # attrs built from other attrs
         self.sizesam = ceil(self.sizelab * self.epsilon / self.n_classes)
-        self.label_queue = LIFO(max_size=self.sizelab)
+        self.label_queue = collections.deque(maxlen=self.sizelab)
         self.learning_queues = [
-            LIFO(max_size=self.sizesam) for _ in range(self.n_classes)
+            collections.deque(maxlen=self.sizesam) for _ in range(self.n_classes)
         ]
         # amt = asymetric margin threshold
         self.amt_matrix = [
@@ -107,18 +75,18 @@ class CALMID(WrapperEnsemble, Classifier):
         zeta = random.uniform(0, 1)
 
         if self.time_step < self.sizelab or zeta < self.epsilon:
-            self.label_queue.add(y)
+            self.label_queue.append(y)
             labelling = True
 
         elif (
             self.uncertainty_selective_strategy(x, y)
             and self.learning_step / self.time_step < self.budget
         ):
-            self.label_queue.add(None)
+            self.label_queue.append(None)
             labelling = True
 
         else:
-            self.label_queue.add(None)
+            self.label_queue.append(None)
 
         if labelling:
             if y not in self.label_to_index:
@@ -129,7 +97,7 @@ class CALMID(WrapperEnsemble, Classifier):
 
             w = self.compute_weight(x, y)
 
-            self.learning_queues[self.label_to_index[y]].add(
+            self.learning_queues[self.label_to_index[y]].append(
                 (x, y, w, self.time_step)
             )
 
