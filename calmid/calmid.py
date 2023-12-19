@@ -7,10 +7,10 @@ from river import utils
 import random
 import collections
 
+
 class CALMID(WrapperEnsemble, Classifier):
     def __init__(
         self,
-        n_classes: int,
         model: Classifier = HoeffdingTreeClassifier(),
         n_models: int = 10,
         theta: float = 0.5,
@@ -37,8 +37,6 @@ class CALMID(WrapperEnsemble, Classifier):
         self.budget = budget
         self.sizelab = sizelab
 
-        self.n_classes = n_classes  # can we do better ? can we adapt ? can we append classes along the stream ? --> will have to update amt_matrix. maybe it can be our contribution !!
-
         # attrs with default values
         self.time_step = 0
         self.learning_step = 0
@@ -46,16 +44,11 @@ class CALMID(WrapperEnsemble, Classifier):
         self.label_to_index = {}
 
         # attrs built from other attrs
-        self.sizesam = ceil(self.sizelab * self.epsilon / self.n_classes)
+        self.sizesam = ceil(self.sizelab * self.epsilon)
         self.label_queue = collections.deque(maxlen=self.sizelab)
-        self.learning_queues = [
-            collections.deque(maxlen=self.sizesam) for _ in range(self.n_classes)
-        ]
+        self.learning_queues = []
         # amt = asymetric margin threshold
-        self.amt_matrix = [
-            [self.theta for _ in range(self.n_classes)]
-            for _ in range(self.n_classes)
-        ]
+        self.amt_matrix = []
         self._drift_detectors = [drift.ADWIN() for _ in range(self.n_models)]
 
     def predict_proba_one(self, x, **kwargs):
@@ -91,6 +84,14 @@ class CALMID(WrapperEnsemble, Classifier):
         if labelling:
             if y not in self.label_to_index:
                 self.label_to_index[y] = len(self.label_to_index)
+                self.learning_queues.append(
+                    collections.deque(maxlen=self.sizesam)
+                )
+                for row in self.amt_matrix:
+                    row.append(self.theta)
+                self.amt_matrix.append(
+                    [self.theta for _ in range(len(self.label_to_index))]
+                )
 
             self.learning_step += 1
             change_detected = False
@@ -189,7 +190,7 @@ class CALMID(WrapperEnsemble, Classifier):
     def compute_imbalance(self, y) -> float:
         return self.label_queue.count(y) / (
             (len(self.label_queue) - self.label_queue.count(None))
-            / self.n_classes
+            / len(self.label_to_index)
         )
 
     def compute_probability_margin_and_top_classes(self, x) -> float:
@@ -206,7 +207,7 @@ class CALMID(WrapperEnsemble, Classifier):
     def initalize_base_classifiers(self):
         model = self.model.clone()
         sample_sequence = []
-        for i in range(self.n_classes):
+        for i in range(len(self.label_to_index)):
             for sample in self.learning_queues[i]:
                 sample_sequence.append(sample)
         sorted_sample_sequence = sorted(
