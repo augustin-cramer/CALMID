@@ -28,7 +28,6 @@ class CALMID(WrapperEnsemble, Classifier):
 
         super().__init__(model, n_models, seed)
 
-        # attrs from init values
         self.n_models = n_models
         self.theta = theta
         self.step_size = step_size
@@ -36,13 +35,11 @@ class CALMID(WrapperEnsemble, Classifier):
         self.budget = budget
         self.sizelab = sizelab
 
-        # attrs with default values
         self.time_step = 0
         self.learning_step = 0
         self.learnt_classes = 0
         self.label_to_index = {}
 
-        # attrs built from other attrs
         self.sizesam = ceil(self.sizelab * self.epsilon)
         self.label_queue = deque(maxlen=self.sizelab)
         self.learning_queues = []
@@ -99,14 +96,12 @@ class CALMID(WrapperEnsemble, Classifier):
                 (x, y, w, self.time_step)
             )
 
-            # this is from river/ensemble/bagging.py
-            for i, model in enumerate(self):  # will it work ?
+            for i, model in enumerate(self):
                 for _ in range(utils.random.poisson(w, self._rng)):
                     model.learn_one(x, y)
                     self.learnt_classes = len(self.label_to_index)
 
                 y_pred = model.predict_one(x)
-                # try to understand this step, what is estimation ?
                 error_estimation = self._drift_detectors[i].estimation
                 self._drift_detectors[i].update(int(y_pred == y))
                 if self._drift_detectors[i].drift_detected:
