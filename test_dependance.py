@@ -61,7 +61,7 @@ for model in models:
 
 
 for model_name, model_dict in models_res.items():
-    path_to_dataset_res = os.path.join("results_", "dependance", model_dict['param'])
+    path_to_dataset_res = os.path.join("results", "dependance", model_dict['param'])
     if not os.path.exists(path_to_dataset_res):
         os.mkdir(path_to_dataset_res)
     if not os.path.exists(os.path.join(path_to_dataset_res, model_dict['value'])):
@@ -75,7 +75,7 @@ def main():
         for model_name, model_dict in models_res.items():
 
             model, model_metrics, res_metrics, res_preds, param, value = model_dict.values()
-            path_to_dataset_res = os.path.join("results_", "dependance", param)
+            path_to_dataset_res = os.path.join("results", "dependance", param)
 
             if step == 0:
                 model.learn_one(x, y)
