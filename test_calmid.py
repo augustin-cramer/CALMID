@@ -1,6 +1,7 @@
 from river import metrics
 from river.tree import HoeffdingTreeClassifier
 from river.forest import ARFClassifier
+from river.ensemble import BaggingClassifier
 from calmid import CALMID
 import pandas as pd
 from tqdm import tqdm
@@ -10,12 +11,15 @@ from testing_utils.custom_import_dataset import get_iter_stream
 
 ### Modify this
 dataset_name = "covertype"
-models = [CALMID(), HoeffdingTreeClassifier(), ARFClassifier()]
+models = [CALMID(), HoeffdingTreeClassifier(), ARFClassifier(), BaggingClassifier(HoeffdingTreeClassifier(), 3)]
 eval_metrics = [
     metrics.Accuracy(),
     metrics.ROCAUC(),
     metrics.BalancedAccuracy(),
     metrics.F1(),
+    metrics.Recall(),
+    ## metrics.ConfusionMatrix(),
+    metrics.GeometricMean()
 ]
 ###
 
