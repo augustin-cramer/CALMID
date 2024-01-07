@@ -11,7 +11,12 @@ from testing_utils.custom_import_dataset import get_iter_stream
 
 ### Modify this
 datasets = ["covertype", "pokerhand", "VarImb_ISSI"]
-models = [CALMID(), HoeffdingTreeClassifier(), ARFClassifier(), BaggingClassifier(HoeffdingTreeClassifier(), 3)]
+models = [
+    CALMID(),
+    HoeffdingTreeClassifier(),
+    ARFClassifier(),
+    BaggingClassifier(HoeffdingTreeClassifier(), 3),
+]
 eval_metrics = [
     metrics.Accuracy(),
     metrics.ROCAUC(),
@@ -19,12 +24,13 @@ eval_metrics = [
     metrics.F1(),
     metrics.Recall(),
     ## metrics.ConfusionMatrix(),
-    metrics.GeometricMean()
+    metrics.GeometricMean(),
 ]
 ###
 
 save_every_n_steps = 1000
 metrics_names = [metric.__class__.__name__.lower() for metric in eval_metrics]
+
 
 def main():
 
@@ -45,14 +51,21 @@ def main():
             os.mkdir(path_to_dataset_res)
 
         for model_name in models_res:
-            if not os.path.exists(os.path.join(path_to_dataset_res, model_name)):
+            if not os.path.exists(
+                os.path.join(path_to_dataset_res, model_name)
+            ):
                 os.mkdir(os.path.join(path_to_dataset_res, model_name))
 
         for step, (x, y) in tqdm(enumerate(stream)):
 
             for model_name, model_dict in models_res.items():
 
-                model, model_metrics, res_metrics, res_preds = model_dict.values()
+                (
+                    model,
+                    model_metrics,
+                    res_metrics,
+                    res_preds,
+                ) = model_dict.values()
 
                 if step == 0:
                     model.learn_one(x, y)
@@ -74,12 +87,15 @@ def main():
 
                 # save sometimes
                 if step % save_every_n_steps == 0:
-                    pd.DataFrame(columns=metrics_names, data=res_metrics).to_csv(
+                    pd.DataFrame(
+                        columns=metrics_names, data=res_metrics
+                    ).to_csv(
                         f"{os.path.join(path_to_dataset_res, model_name)}/metrics.csv",
                         index=False,
                     )
                     pd.DataFrame(
-                        columns=["y", "y_pred", "y_pred_probas"], data=res_preds
+                        columns=["y", "y_pred", "y_pred_probas"],
+                        data=res_preds,
                     ).to_csv(
                         f"{os.path.join(path_to_dataset_res, model_name)}/preds.csv",
                         index=False,

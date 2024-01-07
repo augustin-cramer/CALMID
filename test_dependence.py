@@ -12,7 +12,18 @@ import inspect
 
 ### Modify this
 dataset_name = "VarImb_ISSI"
-models = [CALMID(sizelab = 300), CALMID(sizelab = 800), CALMID(budget=0.15), CALMID(budget=0.25), CALMID(epsilon=0.05), CALMID(epsilon=0.15),CALMID(n_models=5), CALMID(n_models=15),CALMID(theta=0.4), CALMID(theta=0.6)]
+models = [
+    CALMID(sizelab=300),
+    CALMID(sizelab=800),
+    CALMID(budget=0.15),
+    CALMID(budget=0.25),
+    CALMID(epsilon=0.05),
+    CALMID(epsilon=0.15),
+    CALMID(n_models=5),
+    CALMID(n_models=15),
+    CALMID(theta=0.4),
+    CALMID(theta=0.6),
+]
 eval_metrics = [
     metrics.Accuracy(),
     metrics.ROCAUC(),
@@ -20,7 +31,7 @@ eval_metrics = [
     metrics.F1(),
     metrics.Recall(),
     ## metrics.ConfusionMatrix(),
-    metrics.GeometricMean()
+    metrics.GeometricMean(),
 ]
 ###
 
@@ -28,7 +39,7 @@ save_every_n_steps = 1000
 stream = get_iter_stream(dataset_name)
 metrics_names = [metric.__class__.__name__.lower() for metric in eval_metrics]
 models_res = {}
-default_params = CALMID() 
+default_params = CALMID()
 i = 0
 for model in models:
     i += 1
@@ -38,12 +49,22 @@ for model in models:
             "model_metrics": deepcopy(eval_metrics),
             "res_metrics": [],
             "res_preds": [],
-            "param": [param for param, value in inspect.getmembers(model)
-                                if not param.startswith('_') and not inspect.ismethod(value)
-                                and getattr(model, param) != getattr(default_params, param)][-1],
-            "value": str([value for param, value in inspect.getmembers(model)
-                                if not param.startswith('_') and not inspect.ismethod(value)
-                                and getattr(model, param) != getattr(default_params, param)][-1])
+            "param": [
+                param
+                for param, value in inspect.getmembers(model)
+                if not param.startswith("_")
+                and not inspect.ismethod(value)
+                and getattr(model, param) != getattr(default_params, param)
+            ][-1],
+            "value": str(
+                [
+                    value
+                    for param, value in inspect.getmembers(model)
+                    if not param.startswith("_")
+                    and not inspect.ismethod(value)
+                    and getattr(model, param) != getattr(default_params, param)
+                ][-1]
+            ),
         }
     else:
         models_res[i] = {
@@ -51,22 +72,35 @@ for model in models:
             "model_metrics": deepcopy(eval_metrics),
             "res_metrics": [],
             "res_preds": [],
-            "param": [param for param, value in inspect.getmembers(model)
-                                if not param.startswith('_') and not inspect.ismethod(value)
-                                and getattr(model, param) != getattr(default_params, param)][0],
-            "value": str([value for param, value in inspect.getmembers(model)
-                                if not param.startswith('_') and not inspect.ismethod(value)
-                                and getattr(model, param) != getattr(default_params, param)][0])
+            "param": [
+                param
+                for param, value in inspect.getmembers(model)
+                if not param.startswith("_")
+                and not inspect.ismethod(value)
+                and getattr(model, param) != getattr(default_params, param)
+            ][0],
+            "value": str(
+                [
+                    value
+                    for param, value in inspect.getmembers(model)
+                    if not param.startswith("_")
+                    and not inspect.ismethod(value)
+                    and getattr(model, param) != getattr(default_params, param)
+                ][0]
+            ),
         }
 
 
 for model_name, model_dict in models_res.items():
-    path_to_dataset_res = os.path.join("results", "dependance", model_dict['param'])
+    path_to_dataset_res = os.path.join(
+        "results", "dependance", model_dict["param"]
+    )
     if not os.path.exists(path_to_dataset_res):
         os.mkdir(path_to_dataset_res)
-    if not os.path.exists(os.path.join(path_to_dataset_res, model_dict['value'])):
-        os.mkdir(os.path.join(path_to_dataset_res, model_dict['value']))
-
+    if not os.path.exists(
+        os.path.join(path_to_dataset_res, model_dict["value"])
+    ):
+        os.mkdir(os.path.join(path_to_dataset_res, model_dict["value"]))
 
 
 def main():
@@ -74,7 +108,14 @@ def main():
 
         for model_name, model_dict in models_res.items():
 
-            model, model_metrics, res_metrics, res_preds, param, value = model_dict.values()
+            (
+                model,
+                model_metrics,
+                res_metrics,
+                res_preds,
+                param,
+                value,
+            ) = model_dict.values()
             path_to_dataset_res = os.path.join("results", "dependance", param)
 
             if step == 0:

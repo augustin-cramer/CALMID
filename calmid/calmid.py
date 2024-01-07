@@ -24,23 +24,36 @@ class CALMID(WrapperEnsemble, Classifier):
         adwin_grace_period: int = 10,
         seed: int | None = None,
     ) -> None:
-        """CALMID (Comprehensive Active Learning method for Multiclass Imbalanced data streams with concept Drift) is the ensemble
+        """CALMID (Comprehensive Active Learning method for Multiclass
+        Imbalanced data streams with concept Drift) is the ensemble
         method proposed by Liu et al. (2021).
 
         Args:
-            model (Classifier, optional): Base classifier for the ensemble method. Defaults to HoeffdingTreeClassifier().
-            n_models (int, optional): Number of base models to use. Defaults to 10.
-            theta (float, optional): Initial value of all elements of the asymmetric margin threshold matrix. Defaults to 0.5.
-            step_size (float, optional): Adjustment step of the margin threshold. Defaults to 0.1.
-            epsilon (float, optional): Random selection ratio. Defaults to 0.1.
+            model (Classifier, optional): Base classifier for the ensemble
+            method. Defaults to HoeffdingTreeClassifier().
+            n_models (int, optional): Number of base models to use.
+            Defaults to 10.
+            theta (float, optional): Initial value of all elements of the
+            asymmetric margin threshold matrix. Defaults to 0.5.
+            step_size (float, optional): Adjustment step of the margin
+            threshold. Defaults to 0.1.
+            epsilon (float, optional): Random selection ratio. Defaults
+            to 0.1.
             budget (float, optional): Labelling budget. Defaults to 0.2.
-            sizelab (int, optional): Size of the label slinding window. Defaults to 500.
-            adwin_delta (float, optional): ADWIN delta parameter. Defaults to 0.002.
-            adwin_clock (int, optional): ADWIN clock parameter. Defaults to 32.
-            adwin_max_buckets (int, optional): ADWIN max_buckets parameter. Defaults to 5.
-            adwin_min_window_length (int, optional): ADWIN min_window_length parameter. Defaults to 5.
-            adwin_grace_period (int, optional): ADWIN grace_period parameter. Defaults to 10.
-            seed (int | None, optional): Seed to control randomness. Defaults to None.
+            sizelab (int, optional): Size of the label slinding window.
+            Defaults to 500.
+            adwin_delta (float, optional): ADWIN delta parameter. Defaults
+            to 0.002.
+            adwin_clock (int, optional): ADWIN clock parameter. Defaults
+            to 32.
+            adwin_max_buckets (int, optional): ADWIN max_buckets parameter.
+            Defaults to 5.
+            adwin_min_window_length (int, optional): ADWIN min_window_length
+            parameter. Defaults to 5.
+            adwin_grace_period (int, optional): ADWIN grace_period parameter.
+            Defaults to 10.
+            seed (int | None, optional): Seed to control randomness. Defaults
+            to None.
 
         Raises:
             ValueError: budget must be greater than epsilon
@@ -248,9 +261,7 @@ class CALMID(WrapperEnsemble, Classifier):
         for i in range(len(self.label_to_index)):
             for sample in self.learning_queues[i]:
                 sample_sequence.append(sample)
-        sorted_sample_sequence = sorted(
-            sample_sequence, key=lambda x: x[3]
-        )
+        sorted_sample_sequence = sorted(sample_sequence, key=lambda x: x[3])
         for (
             sample_x,
             sample_y,
