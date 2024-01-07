@@ -12,7 +12,7 @@ import inspect
 
 ### Modify this
 dataset_name = "VarImb_ISSI"
-models = [CALMID(sizelab = 300), CALMID(sizelab = 800), CALMID(budget=0.15), CALMID(budget=0.25)]
+models = [CALMID(sizelab = 300), CALMID(sizelab = 800), CALMID(budget=0.15), CALMID(budget=0.25), CALMID(epsilon=0.05), CALMID(epsilon=0.15),CALMID(n_models=5), CALMID(n_models=15),CALMID(theta=0.4), CALMID(theta=0.6)]
 eval_metrics = [
     metrics.Accuracy(),
     metrics.ROCAUC(),

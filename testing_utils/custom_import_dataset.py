@@ -14,6 +14,7 @@ def read_covertype():
     return iter_pandas(X=X, y=Y)
     
 def read_others(dataset_name):
+    ## Warning : VarImb_ISSI should be unziped before it can be called by this function
     raw_data = loadarff("./datasets/"+dataset_name+".arff")
     df = pd.DataFrame(raw_data[0])
     label_col = df.columns[-1]
