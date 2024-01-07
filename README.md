@@ -2,7 +2,7 @@
 
 CALMID is an active learning method proposed by [Liu et al. (2021)](https://www.sciencedirect.com/science/article/pii/S0950705121000411). It is designed to address the challenges of multiclass imbalance and concept drift in data streams.
 
-This repo contains a Python implementation of the model from M. Bordes and A. Cramer. It is compliant to the PEP8 standards. The repo also contains testing scripts, datasets and testing results. They are provided in the context of the course from the Master 2 DS (IP Paris) for which purpose the author produced this work.
+This repo contains a Python implementation of the model from M. Bordes and A. Cramer. It is compliant to the PEP8 standards. The [online repo](https://github.com/augustin-cramer/CALMID) also contains testing scripts, datasets and testing results. They are provided in the context of the course from the Master 2 DS (IP Paris) for which purpose the author produced this work.
 
 <h1>Workflow of the model - Source: Liu et al. (2021)
 
