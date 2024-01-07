@@ -69,6 +69,8 @@ class CALMID(WrapperEnsemble, Classifier):
     def predict_proba_one(self, x, **kwargs):
         """Averages the predictions of each classifier."""
 
+        if self.learnt_classes == 0:
+            return {}
         y_pred = Counter()
         for model in self:
             y_pred.update(model.predict_proba_one(x, **kwargs))
