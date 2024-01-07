@@ -24,12 +24,36 @@ class CALMID(WrapperEnsemble, Classifier):
         adwin_grace_period: int = 10,
         seed: int | None = None,
     ) -> None:
-        """CALMID class constructor"""
+        """CALMID (Comprehensive Active Learning method for Multiclass Imbalanced data streams with concept Drift) is the ensemble
+        method proposed by Liu et al. (2021).
+
+        Args:
+            model (Classifier, optional): Base classifier for the ensemble method. Defaults to HoeffdingTreeClassifier().
+            n_models (int, optional): Number of base models to use. Defaults to 10.
+            theta (float, optional): Initial value of all elements of the asymmetric margin threshold matrix. Defaults to 0.5.
+            step_size (float, optional): Adjustment step of the margin threshold. Defaults to 0.1.
+            epsilon (float, optional): Random selection ratio. Defaults to 0.1.
+            budget (float, optional): Labelling budget. Defaults to 0.2.
+            sizelab (int, optional): Size of the label slinding window. Defaults to 500.
+            adwin_delta (float, optional): ADWIN delta parameter. Defaults to 0.002.
+            adwin_clock (int, optional): ADWIN clock parameter. Defaults to 32.
+            adwin_max_buckets (int, optional): ADWIN max_buckets parameter. Defaults to 5.
+            adwin_min_window_length (int, optional): ADWIN min_window_length parameter. Defaults to 5.
+            adwin_grace_period (int, optional): ADWIN grace_period parameter. Defaults to 10.
+            seed (int | None, optional): Seed to control randomness. Defaults to None.
+
+        Raises:
+            ValueError: budget must be greater than epsilon
+            ValueError: epsilon must be between 0 and 1
+            ValueError: budget must be between 0 and 1
+        """
 
         if budget <= epsilon:
             raise ValueError("budget must be greater than epsilon")
         if not 0 <= epsilon <= 1:
             raise ValueError("epsilon must be between 0 and 1")
+        if not 0 <= budget <= 1:
+            raise ValueError("budget must be between 0 and 1")
 
         super().__init__(model, n_models, seed)
 
@@ -53,7 +77,6 @@ class CALMID(WrapperEnsemble, Classifier):
         self.sizesam = ceil(self.sizelab * self.epsilon)
         self.label_queue = deque(maxlen=self.sizelab)
         self.learning_queues = []
-        # amt = asymetric margin threshold
         self.amt = []
         self._drift_detectors = [
             ADWIN(
@@ -89,7 +112,7 @@ class CALMID(WrapperEnsemble, Classifier):
             labelling = True
 
         elif (
-            self.uncertainty_selective_strategy(x, y)
+            self._uncertainty_selective_strategy(x, y)
             and self.learning_step / self.time_step < self.budget
         ):
             self.label_queue.append(None)
@@ -111,7 +134,7 @@ class CALMID(WrapperEnsemble, Classifier):
             self.learning_step += 1
             change_detected = False
 
-            w = self.compute_weight(x, y)
+            w = self._compute_weight(x, y)
 
             self.learning_queues[self.label_to_index[y]].append(
                 (x, y, w, self.time_step)
@@ -134,7 +157,7 @@ class CALMID(WrapperEnsemble, Classifier):
                     range(len(self._drift_detectors)),
                     key=lambda j: self._drift_detectors[j].estimation,
                 )
-                self.models[max_error_idx] = self.initalize_base_classifiers()
+                self.models[max_error_idx] = self._initalize_base_classifiers()
                 self._drift_detectors[max_error_idx] = ADWIN(
                     delta=self.adwin_delta,
                     clock=self.adwin_clock,
@@ -143,15 +166,15 @@ class CALMID(WrapperEnsemble, Classifier):
                     grace_period=self.adwin_grace_period,
                 )
 
-    def uncertainty_selective_strategy(self, x, y) -> bool:
+    def _uncertainty_selective_strategy(self, x, y) -> bool:
         labelling = False
-        margin, yc1, yc2 = self.compute_probability_margin_and_top_classes(x)
+        margin, yc1, yc2 = self._compute_probability_margin_and_top_classes(x)
         if (
             margin
             <= self.amt[self.label_to_index[yc1]][self.label_to_index[yc2]]
         ):
             labelling = True
-            imb_y = self.compute_imbalance(y)
+            imb_y = self._compute_imbalance(y)
             if y == yc1:
                 self.amt[self.label_to_index[yc1]][
                     self.label_to_index[yc2]
@@ -188,8 +211,8 @@ class CALMID(WrapperEnsemble, Classifier):
                 )
         return labelling
 
-    def compute_sample_difficulty(self, x, y) -> float:
-        margin, yc1, yc2 = self.compute_probability_margin_and_top_classes(x)
+    def _compute_sample_difficulty(self, x, y) -> float:
+        margin, yc1, yc2 = self._compute_probability_margin_and_top_classes(x)
         if yc1 == y:
             tf, s = 1, 0
         elif yc2 == y:
@@ -198,17 +221,17 @@ class CALMID(WrapperEnsemble, Classifier):
             tf, s = -1, 0
         return (1 - tf * margin) * exp(1 - tf - s)
 
-    def compute_weight(self, x, y) -> float:
-        imb_y = max(1, self.compute_imbalance(y))
-        return log(1 + self.compute_sample_difficulty(x, y) + 1 / imb_y)
+    def _compute_weight(self, x, y) -> float:
+        imb_y = max(1, self._compute_imbalance(y))
+        return log(1 + self._compute_sample_difficulty(x, y) + 1 / imb_y)
 
-    def compute_imbalance(self, y) -> float:
+    def _compute_imbalance(self, y) -> float:
         return self.label_queue.count(y) / (
             (len(self.label_queue) - self.label_queue.count(None))
             / len(self.label_to_index)
         )
 
-    def compute_probability_margin_and_top_classes(self, x) -> float:
+    def _compute_probability_margin_and_top_classes(self, x) -> float:
         if self.learnt_classes < 2:
             return 0, None, None
         predictive_probas = self.predict_proba_one(x)
@@ -219,7 +242,7 @@ class CALMID(WrapperEnsemble, Classifier):
         yc2, p_yc2 = sorted_elements[1]
         return p_yc1 - p_yc2, yc1, yc2
 
-    def initalize_base_classifiers(self):
+    def _initalize_base_classifiers(self):
         model = self.model.clone()
         sample_sequence = []
         for i in range(len(self.label_to_index)):
@@ -227,19 +250,19 @@ class CALMID(WrapperEnsemble, Classifier):
                 sample_sequence.append(sample)
         sorted_sample_sequence = sorted(
             sample_sequence, key=lambda x: x[3]
-        )  # sort by timestamp
+        )
         for (
             sample_x,
             sample_y,
             sample_weight,
             sample_arriving_time,
         ) in sorted_sample_sequence:
-            decay_factor = self.compute_decay_factor(sample_arriving_time)
+            decay_factor = self._compute_decay_factor(sample_arriving_time)
             decayed_weight = decay_factor * sample_weight
             w = utils.random.poisson(decayed_weight)
             for _ in range(utils.random.poisson(w, self._rng)):
                 model.learn_one(sample_x, sample_y)
         return model
 
-    def compute_decay_factor(self, arriving_time):
+    def _compute_decay_factor(self, arriving_time):
         return exp(-(self.time_step - arriving_time) / self.sizelab)
